@@ -1,0 +1,20 @@
+{
+  "users": {
+
+
+    "validUser": {
+      "username": "standard_user",
+      "password": "SecretPass123"
+    },
+    "invalidUser": {
+      "username": "invaliduser",
+      "password": "wrongpassword"
+    }
+  },
+  "practiceForm": {
+    "allDays": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    "sampleDate": { "day": "15", "month": "Sep", "year": "2026" }
+
+    
+  }
+}
