@@ -3,6 +3,7 @@ node {
     def testExitCode = 0
     def qualityGatePassed = false
     def failureMessage = ''
+    def testCommand = '' 
 
     try {
 
