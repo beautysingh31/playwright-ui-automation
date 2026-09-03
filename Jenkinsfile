@@ -1,3 +1,18 @@
+
+properties([
+    parameters([
+        choice(
+            name: 'BROWSER',
+            choices: ['chromium', 'firefox', 'webkit'],
+            description: 'Select browser for Playwright tests'
+        ),
+        choice(
+            name: 'TEST_SUITE',
+            choices: ['smoke', 'regression', 'all'],
+            description: 'Select test suite to execute'
+        )
+    ])
+])
 node {
      env.PATH = "${tool 'nodejs26'}/bin:${env.PATH}"
     def testExitCode = 0
