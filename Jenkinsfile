@@ -14,11 +14,11 @@ properties([
 ])
 
 node {
-    env.PATH = "${tool 'nodejs26'}/bin:${env.PATH}"
     def testExitCode = 0
     def qualityGatePassed = false
     def failureMessage = ''
     def testCommand = ''
+    def customImage
 
     try {
 
@@ -26,13 +26,8 @@ node {
             checkout scm
         }
 
-        stage('Install Dependencies') {
-            sh 'npm ci'
-        }
-
-        stage('Install Browsers') {
-            echo 'Installing Playwright browsers...'
-            sh 'npx playwright install --with-deps'
+        stage('Build Docker Image') {
+            customImage = docker.build("playwright-tests:${env.BUILD_NUMBER}", ".")
         }
 
         stage('Run Tests') {
@@ -51,7 +46,13 @@ node {
             }
 
             testExitCode = sh(
-                script: testCommand,
+                script: """
+                    docker run --rm \
+                        -v \$(pwd)/playwright-report:/app/playwright-report \
+                        -v \$(pwd)/allure-results:/app/allure-results \
+                        -v \$(pwd)/test-results:/app/test-results \
+                        ${customImage.id} ${testCommand}
+                """,
                 returnStatus: true
             )
         }
@@ -76,30 +77,23 @@ node {
             )
         }
 
-        stage('allure') {
+        stage('Allure Report') {
             allure includeProperties: false, jdk: '', results: [[path: 'allure-results']]
         }
 
         stage('Quality Gate') {
 
             if (testExitCode == 0) {
-
                 qualityGatePassed = true
-
                 echo 'QUALITY GATE PASSED'
                 echo 'All tests passed.'
                 echo 'Exit Code: 0'
-
             } else {
-
                 qualityGatePassed = false
-
                 failureMessage =
                     "Quality Gate Failed. Playwright exit code: ${testExitCode}"
-
                 echo 'QUALITY GATE FAILED'
                 echo failureMessage
-
                 currentBuild.result = 'FAILURE'
             }
         }
@@ -111,7 +105,6 @@ node {
             emailext(
                 subject:
                     "${status}: Playwright ${params.TEST_SUITE} - ${params.BROWSER} - Build #${env.BUILD_NUMBER}",
-
                 body: """
 Hello,
 
@@ -156,7 +149,6 @@ ${env.BUILD_URL}artifact/playwright-report/index.html
 Regards,
 Jenkins
 """,
-
                 to: 'beauty.singh3105@gmail.com'
             )
         }
