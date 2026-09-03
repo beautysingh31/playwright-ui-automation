@@ -54,7 +54,7 @@ node {
                         -v \$(pwd)/playwright-report:/app/playwright-report \
                         -v \$(pwd)/allure-results:/app/allure-results \
                         -v \$(pwd)/test-results:/app/test-results \
-                        ${customImage.id} ${testCommand}
+                         playwright-tests:${env.BUILD_NUMBER} ${testCommand}
                 """,
                 returnStatus: true
             )
