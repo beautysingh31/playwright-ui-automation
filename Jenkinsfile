@@ -88,3 +88,81 @@ node {
 
                 echo 'QUALITY GATE PASSED'
                 echo 'All tests passed.'
+                echo 'Exit Code: 0'
+
+            } else {
+
+                qualityGatePassed = false
+
+                failureMessage =
+                    "Quality Gate Failed. Playwright exit code: ${testExitCode}"
+
+                echo 'QUALITY GATE FAILED'
+                echo failureMessage
+
+                currentBuild.result = 'FAILURE'
+            }
+        }
+
+        stage('Email Notification') {
+
+            def status = qualityGatePassed ? 'SUCCESS' : 'FAILURE'
+
+            emailext(
+                subject:
+                    "${status}: Playwright ${params.TEST_SUITE} - ${params.BROWSER} - Build #${env.BUILD_NUMBER}",
+
+                body: """
+Hello,
+
+Playwright Automation Test Execution
+
+----------------------------------------
+Build Information
+----------------------------------------
+
+Job          : ${env.JOB_NAME}
+Build Number : ${env.BUILD_NUMBER}
+Status       : ${status}
+
+----------------------------------------
+Test Configuration
+----------------------------------------
+
+Browser      : ${params.BROWSER}
+Test Suite   : ${params.TEST_SUITE}
+Exit Code    : ${testExitCode}
+
+----------------------------------------
+Quality Gate
+----------------------------------------
+
+${qualityGatePassed
+    ? 'PASSED - All test cases passed.'
+    : 'FAILED - One or more test cases failed.'}
+
+----------------------------------------
+Reports
+----------------------------------------
+
+Build:
+${env.BUILD_URL}
+
+Playwright Report:
+${env.BUILD_URL}artifact/playwright-report/index.html
+
+----------------------------------------
+
+Regards,
+Jenkins
+""",
+
+                to: 'beauty.singh3105@gmail.com'
+            )
+        }
+
+        if (!qualityGatePassed) {
+            error(failureMessage)
+        }
+    }
+}
