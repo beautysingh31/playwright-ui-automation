@@ -1,5 +1,5 @@
 node {
-
+     env.PATH = "${tool 'nodejs26'}/bin:${env.PATH}"
     def testExitCode = 0
     def qualityGatePassed = false
     def failureMessage = ''
@@ -13,9 +13,11 @@ node {
         stage('Install Dependencies') {
             sh 'npm ci'
         }
+
+
         stage('Install Browsers') {
-    echo 'Installing Playwright browsers...'
-    sh 'npx playwright install --with-deps'
+        echo 'Installing Playwright browsers...'
+        sh 'npx playwright install --with-deps'
 }
 
         stage('Run Tests') {
