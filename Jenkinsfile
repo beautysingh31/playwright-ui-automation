@@ -36,28 +36,29 @@ node {
         sh 'npx playwright install --with-deps'
 }
 
-        stage('Run Tests') {
+       stage('Run Tests') {
 
-            if (params.TEST_SUITE == 'smoke') {
-                testCommand =
-                    "npx playwright test tests/smoke --project=${params.BROWSER}"
-            }
-            else if (params.TEST_SUITE == 'regression') {
-                testCommand =
-                    "npx playwright test tests/regression --project=${params.BROWSER}"
-            }
-            else {
-                testCommand =
-                    "npx playwright test --project=${params.BROWSER}"
-            }
+    if (params.TEST_SUITE == 'smoke') {
+        testCommand =
+            "npx playwright test --grep @smoke --project=${params.BROWSER}"
+    }
+    else if (params.TEST_SUITE == 'regression') {
+        testCommand =
+            "npx playwright test --grep @regression --project=${params.BROWSER}"
+    }
+    else {
+        testCommand =
+            "npx playwright test --project=${params.BROWSER}"
+    }
 
-            testExitCode = sh(
-                script: testCommand,
-                returnStatus: true
-            )
-        }
+    testExitCode = sh(
+        script: testCommand,
+        returnStatus: true
+    )
 
-    } finally {
+    } 
+    
+    finally {
 
         stage('Archive Reports') {
 
