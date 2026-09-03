@@ -1,89 +1,47 @@
-properties([
-    parameters([
-        choice(
-            name: 'BROWSER',
-            choices: ['chromium', 'firefox', 'webkit'],
-            description: 'Select browser for Playwright tests'
-        ),
-
-        choice(
-            name: 'TEST_SUITE',
-            choices: ['smoke', 'regression', 'all'],
-            description: 'Select test suite to execute'
-        )
-    ])
-])
-
 node {
 
     def testExitCode = 0
-    def testCommand = ''
+    def qualityGatePassed = false
+    def failureMessage = ''
 
     try {
 
         stage('Checkout') {
-
-            echo 'Checking out source code...'
-
             checkout scm
         }
 
         stage('Install Dependencies') {
-
-            echo 'Installing dependencies...'
-
             sh 'npm ci'
         }
+        stage('Install Browsers') {
+    echo 'Installing Playwright browsers...'
+    sh 'npx playwright install --with-deps'
+}
 
-        stage('Prepare Test Command') {
+        stage('Run Tests') {
 
-            switch (params.TEST_SUITE) {
-
-                case 'smoke':
-                    testCommand =
-                        "npx playwright test tests/smoke --project=${params.BROWSER}"
-                    break
-
-                case 'regression':
-                    testCommand =
-                        "npx playwright test tests/regression --project=${params.BROWSER}"
-                    break
-
-                case 'all':
-                    testCommand =
-                        "npx playwright test --project=${params.BROWSER}"
-                    break
-
-                default:
-                    error("Invalid test suite selected")
+            if (params.TEST_SUITE == 'smoke') {
+                testCommand =
+                    "npx playwright test tests/smoke --project=${params.BROWSER}"
             }
-
-            echo "======================================"
-            echo "Browser    : ${params.BROWSER}"
-            echo "Test Suite : ${params.TEST_SUITE}"
-            echo "Command    : ${testCommand}"
-            echo "======================================"
-        }
-
-        stage('Run Playwright Tests') {
-
-            echo 'Running Playwright tests...'
+            else if (params.TEST_SUITE == 'regression') {
+                testCommand =
+                    "npx playwright test tests/regression --project=${params.BROWSER}"
+            }
+            else {
+                testCommand =
+                    "npx playwright test --project=${params.BROWSER}"
+            }
 
             testExitCode = sh(
                 script: testCommand,
                 returnStatus: true
             )
-
-            echo "Playwright exit code: ${testExitCode}"
         }
 
     } finally {
 
         stage('Archive Reports') {
-
-            echo '======================================'
-            echo 'Archiving test reports...'
-            echo '======================================'
 
             archiveArtifacts(
                 artifacts: 'playwright-report/**',
@@ -105,78 +63,94 @@ node {
 
             if (testExitCode == 0) {
 
-                echo '======================================'
+                qualityGatePassed = true
+
                 echo 'QUALITY GATE PASSED'
-                echo 'All test cases passed.'
+                echo 'All tests passed.'
                 echo 'Exit Code: 0'
-                echo '======================================'
 
             } else {
 
-                echo '======================================'
+                qualityGatePassed = false
+
+                failureMessage =
+                    "Quality Gate Failed. Playwright exit code: ${testExitCode}"
+
                 echo 'QUALITY GATE FAILED'
-                echo "Test cases failed."
-                echo "Exit Code: ${testExitCode}"
-                echo '======================================'
+                echo failureMessage
 
                 currentBuild.result = 'FAILURE'
-
-                error(
-                    "Quality Gate Failed. Playwright exit code: ${testExitCode}"
-                )
             }
         }
 
-    }
+        stage('Email Notification') {
 
-    stage('Send Email Notification') {
+            def status = qualityGatePassed ? 'SUCCESS' : 'FAILURE'
 
-        def buildStatus = currentBuild.result ?: 'SUCCESS'
+            emailext(
+                subject:
+                    "${status}: Playwright ${params.TEST_SUITE} - ${params.BROWSER} - Build #${env.BUILD_NUMBER}",
 
-        emailext(
-            subject: "${buildStatus}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-
-            body: """
+                body: """
 Hello,
 
-Playwright Automation Execution Summary
+Playwright Automation Test Execution
 
-========================================
+----------------------------------------
 Build Information
-========================================
+----------------------------------------
 
 Job          : ${env.JOB_NAME}
 Build Number : ${env.BUILD_NUMBER}
-Status       : ${buildStatus}
+Status       : ${status}
 
-========================================
-Test Execution
-========================================
+----------------------------------------
+Test Configuration
+----------------------------------------
 
 Browser      : ${params.BROWSER}
 Test Suite   : ${params.TEST_SUITE}
 Exit Code    : ${testExitCode}
 
-========================================
-Reports
-========================================
+----------------------------------------
+Quality Gate
+----------------------------------------
 
-Jenkins Build:
+${qualityGatePassed
+    ? 'PASSED - All test cases passed.'
+    : 'FAILED - One or more test cases failed.'}
+
+----------------------------------------
+Reports
+----------------------------------------
+
+Build:
 ${env.BUILD_URL}
 
 Playwright Report:
 ${env.BUILD_URL}artifact/playwright-report/index.html
 
-Allure Results:
-${env.BUILD_URL}artifact/allure-results/
-
-========================================
+----------------------------------------
 
 Regards,
 Jenkins
 """,
 
-            to: 'beauty.singh3105@gmail.com'
-        )
+                to: 'beauty.singh3105@gmail.com'
+            )
+        }
+
+        /*
+         * Fail the Jenkins build AFTER:
+         * 1. Tests
+         * 2. Reports
+         * 3. Quality Gate
+         * 4. Email
+         */
+
+        if (!qualityGatePassed) {
+
+            error(failureMessage)
+        }
     }
 }
