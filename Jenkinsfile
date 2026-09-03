@@ -77,6 +77,7 @@ node {
             )
         }
 
+  stage('Allure Report') { allure includeProperties: false, jdk: '', results: [[path: 'allure-results']] } 
         stage('Quality Gate') {
 
             if (testExitCode == 0) {
