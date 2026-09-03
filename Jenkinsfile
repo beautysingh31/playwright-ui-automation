@@ -76,7 +76,7 @@ node {
             )
         }
 
-        stage('Allure Report') {
+        stage('allure') {
             allure includeProperties: false, jdk: '', results: [[path: 'allure-results']]
         }
 
