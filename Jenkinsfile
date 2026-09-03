@@ -26,9 +26,12 @@ node {
             checkout scm
         }
 
-        stage('Build Docker Image') {
-            customImage = sh '/usr/local/bin/docker build -t playwright-tests:${env.BUILD_NUMBER}
-        }
+        // stage('Build Docker Image') {
+        //     customImage = docker.build("playwright-tests:${env.BUILD_NUMBER}", ".")
+        // }
+
+        stage('Build Docker Image')
+         { sh "/usr/local/bin/docker build -t playwright-tests:${env.BUILD_NUMBER} ." }
 
         stage('Run Tests') {
 
