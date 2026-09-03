@@ -49,15 +49,15 @@ node {
             }
 
             testExitCode = sh(
-                script: """
-                    docker run --rm \
-                        -v \$(pwd)/playwright-report:/app/playwright-report \
-                        -v \$(pwd)/allure-results:/app/allure-results \
-                        -v \$(pwd)/test-results:/app/test-results \
-                         playwright-tests:${env.BUILD_NUMBER} ${testCommand}
-                """,
-                returnStatus: true
-            )
+    script: """
+        /usr/local/bin/docker run --rm \
+            -v \$(pwd)/playwright-report:/app/playwright-report \
+            -v \$(pwd)/allure-results:/app/allure-results \
+            -v \$(pwd)/test-results:/app/test-results \
+            playwright-tests:${env.BUILD_NUMBER} ${testCommand}
+    """,
+    returnStatus: true
+)
         }
 
     } finally {
