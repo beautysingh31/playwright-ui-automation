@@ -27,7 +27,7 @@ node {
         }
 
         stage('Build Docker Image') {
-            customImage = docker.build("playwright-tests:${env.BUILD_NUMBER}", ".")
+            customImage = sh '/usr/local/bin/docker build -t playwright-tests:${env.BUILD_NUMBER}
         }
 
         stage('Run Tests') {
